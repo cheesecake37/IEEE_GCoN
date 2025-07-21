@@ -1,0 +1,121 @@
+import math
+import time
+import sys
+
+def partition_number(N):
+    """
+    Partition the number N into two parts: x and y.
+    x is the first half, y is the second half (including leading zeros if any).
+    Args:
+        N: The number to partition (as a string to preserve leading zeros).
+    
+    Returns:
+        x, y, y_length: Partitioned parts of N and the length of y for reconstruction.
+    """
+    N_str = str(N)  # Convert the number to a string
+    mid = len(N_str) // 2  # Find the midpoint for splitting
+    x = int(N_str[:mid])   # First half
+    y = N_str[mid:]        # Second half as a string to preserve leading zeros
+    return x, int(y), len(y)
+
+
+def encrypt(x, y, a, h, k):
+    """
+    Encryption function.
+    Args:
+        x, y: Original coordinates
+        a: Parameter for translation
+        h, k: Translation parameters
+    
+    Returns:
+        X, Y: Transformed (encrypted) coordinates
+    """
+    # Translate x, y
+    X = x - a + h
+    Y = y + a + k
+
+    # Rotation (45 degrees counter-clockwise)
+    theta = math.radians(45)
+    X_rotated = X * math.cos(theta) - Y * math.sin(theta)
+    Y_rotated = X * math.sin(theta) + Y * math.cos(theta)
+    
+    return X_rotated, Y_rotated
+
+
+def decrypt(X_rotated, Y_rotated, a, h, k):
+    """
+    Decryption function to reverse the process.
+    Args:
+        X_rotated, Y_rotated: Encrypted coordinates
+        a: Parameter for translation
+        h, k: Translation parameters
+    
+    Returns:
+        x, y: Original coordinates
+    """
+    # Rotation (45 degrees clockwise)
+    theta = -math.radians(45)
+    X = X_rotated * math.cos(theta) - Y_rotated * math.sin(theta)
+    Y = X_rotated * math.sin(theta) + Y_rotated * math.cos(theta)
+
+    # Reverse translation
+    x = X + a - h
+    y = Y - a - k
+    
+    return round(x), round(y)  # Ensure numerical stability with rounding
+
+
+# Performance Analysis
+def performance_analysis(N, a, h, k):
+    """
+    Measures the performance of encryption and decryption for a given input.
+    Args:
+        N: The number to encrypt.
+        a, h, k: Encryption parameters.
+    
+    Returns:
+        Metrics for encryption and decryption times and ciphertext size.
+    """
+    # Partition the number
+    x, y, y_length = partition_number(N)
+
+    # Measure encryption time
+    start_time = time.perf_counter()
+    X_enc, Y_enc = encrypt(x, y, a, h, k)
+    enc_time = (time.perf_counter() - start_time) * 1e6  # Convert to microseconds
+
+    # Measure decryption time
+    start_time = time.perf_counter()
+    x_dec, y_dec = decrypt(X_enc, Y_enc, a, h, k)
+    dec_time = (time.perf_counter() - start_time) * 1e6  # Convert to microseconds
+
+    # Calculate size of ciphertext
+    ciphertext_size = sys.getsizeof(X_enc) + sys.getsizeof(Y_enc)
+
+    # Reconstruct the original number from the partitions
+    reconstructed_N = str(x_dec) + str(y_dec).zfill(y_length)
+
+    return enc_time, dec_time, ciphertext_size, reconstructed_N
+
+
+# Main function
+if __name__ == "__main__":
+    print("=== Encryption/Decryption Program with Performance Analysis ===")
+    
+    # Get user input for the number N
+    N = input("Enter the number N to encrypt: ").strip()
+    
+    # Get parameters for encryption
+    a = float(input("Enter the parameter 'a': "))
+    h = float(input("Enter the translation parameter 'h': "))
+    k = float(input("Enter the translation parameter 'k': "))
+
+    # Perform encryption, decryption, and performance analysis
+    enc_time, dec_time, ciphertext_size, reconstructed_N = performance_analysis(N, a, h, k)
+
+    # Print results
+    print(f"\nPerformance Analysis for N = {N}:")
+    print(f"Time taken for encryption: {enc_time:.2f} µs")
+    print(f"Time taken for decryption: {dec_time:.2f} µs")
+    print(f"Size of ciphertext: {ciphertext_size} bytes")
+    print(f"Reconstructed Number (Recovered N): {reconstructed_N}")
